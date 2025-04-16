@@ -74,6 +74,10 @@ public class ArrayDeque<Item> {
 
     public Item removeLast(){
 
+        if(isEmpty()){
+            return null;
+        }
+
         if(isUnder25Percent()){
             resize(arrayCapacity/2);
         }
