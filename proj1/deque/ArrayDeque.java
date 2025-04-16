@@ -89,6 +89,10 @@ public class ArrayDeque<Item> {
 
     public Item removeFirst(){
 
+        if(isEmpty()){
+            return null;
+        }
+
         if(isUnder25Percent()){
             resize(arrayCapacity/2);
         }
@@ -137,6 +141,9 @@ public class ArrayDeque<Item> {
     }
 
     public int size(){
+        if(size<0){
+            return 0;
+        }
         return this.size;
     }
 
@@ -146,10 +153,12 @@ public class ArrayDeque<Item> {
             return null;
         }
 
-        int i=(nextFirst+1)%arrayCapacity;
-        while (i<index) {
-            i++;
-        }
+//        int i=(nextFirst+1)%arrayCapacity;
+//        while (i<index) {
+//            i++;
+//        }
+
+        int i=(nextFirst+1+index)%arrayCapacity;
         return items[i];
 
     }
