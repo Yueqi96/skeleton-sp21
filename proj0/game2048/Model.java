@@ -5,7 +5,7 @@ import java.util.Observable;
 
 
 /** The state of a game of 2048.
- *  @author TODO: YOUR NAME HERE
+ *  @author TODO: Yueqi Ling
  */
 public class Model extends Observable {
     /** Current contents of the board. */
@@ -106,19 +106,135 @@ public class Model extends Observable {
      *    value, then the leading two tiles in the direction of motion merge,
      *    and the trailing tile does not.
      * */
+
+
     public boolean tilt(Side side) {
         boolean changed;
         changed = false;
+        boolean lastMerge=false;
 
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
+
+        board.setViewingPerspective(side);
+
+
+        //1.NORTH ONLY
+
+        for(int c=0;c<board.size();c+=1){
+            for(int r=board.size()-1;r>=0;r-=1){
+                Boolean isMerge=false;
+
+                Tile t = board.tile(c,r);
+                if (t==null){
+                    continue;
+                }
+
+                //1.judge whether there is a merge happend
+                isMerge=needMerge(c,r);
+                //2.count how many steps can be moved up
+
+                int step=countMoveSteps(c,r,lastMerge);
+                lastMerge=isMerge;
+
+                if(step==0){
+                    changed=false;
+                    continue;
+                }
+                board.move(c,r+step,t);
+                //3.update score
+                score=updateScore(isMerge,score,c,r+step);
+                changed=true;
+
+            }
+        }
+
+        board.setViewingPerspective(Side.NORTH);
 
         checkGameOver();
         if (changed) {
             setChanged();
         }
         return changed;
+    }
+
+    private boolean needMerge(int curr_col,int curr_row){
+        boolean mergeFlag=false;
+        for(int count=curr_row;count<board.size();count+=1) {
+            if(!isValid(curr_col, count + 1)){
+                return mergeFlag;
+            }
+
+            Tile uppertile = board.tile(curr_col, count + 1);
+            if(uppertile==null){
+                continue;
+            }
+
+            if (uppertile.value() == board.tile(curr_col, curr_row).value()) {
+                mergeFlag = true;
+            }
+        }
+        return mergeFlag;
+    }
+
+    private boolean isValid(int col, int row ){
+        if ((col>=0)&(col< board.size())
+                &(row>=0)&(row< board.size())){
+            return true;
+        }
+        return false;
+    }
+
+    private int countMoveSteps(int curr_col,int curr_row,boolean isLastTimeMerge){
+        int moveStep=0;
+
+        //1.merge happens last time
+        if(isLastTimeMerge){
+            moveStep=largestEmptySpace(curr_col,curr_row)-curr_row;
+            return moveStep;
+        }
+
+        //2.no merge last time on the upper tile
+        for(int count=curr_row;count<board.size();count+=1){
+
+            if(!isValid(curr_col, count + 1)){
+                continue;
+            }
+
+            Tile uppertile=board.tile(curr_col,count+1);
+            if(uppertile==null){
+                moveStep+=1;
+                continue;
+            }
+            if(uppertile.value()==board.tile(curr_col,curr_row).value()){
+                moveStep+=1;
+            }
+        }
+
+        return moveStep;
+    }
+
+    private int largestEmptySpace(int col,int row){
+        int maxEmpty=0;
+        for(int r=row;r<board.size();r+=1){
+            if(!isValid(col, r + 1)){
+                return maxEmpty;
+            }
+
+            if (board.tile(col,r+1)==null){
+                maxEmpty=r+1;
+            }
+        }
+        return maxEmpty;
+    }
+
+    private int updateScore(boolean isMerge,int score,int col,int row){
+        Tile currTile=board.tile(col,row);
+        if (isMerge&(currTile.value()>score)){
+            score+=currTile.value();
+        }
+        return score;
     }
 
     /** Checks if the game is over and sets the gameOver variable
@@ -138,6 +254,13 @@ public class Model extends Observable {
      * */
     public static boolean emptySpaceExists(Board b) {
         // TODO: Fill in this function.
+        for(int i=0;i<b.size();i+=1){
+            for(int j=0;j<b.size();j+=1){
+                if(b.tile(i,j)==null){
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -148,6 +271,16 @@ public class Model extends Observable {
      */
     public static boolean maxTileExists(Board b) {
         // TODO: Fill in this function.
+        for(int i=0;i<b.size();i+=1){
+            for(int j=0;j<b.size();j+=1){
+                if(b.tile(i,j)==null){
+                    continue;
+                }
+                if(b.tile(i,j).value()==MAX_PIECE){
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -159,7 +292,59 @@ public class Model extends Observable {
      */
     public static boolean atLeastOneMoveExists(Board b) {
         // TODO: Fill in this function.
+        if(emptySpaceExists(b)){
+            return true;
+        }
+        //adjacent:4
+        for(int i=0;i<b.size();i+=1){
+            for(int j=0;j<b.size();j+=1){
+                if(isAdjacentequal(b,b.tile(i,j),b.size())){
+                    return true;
+                }
+            }
+        }
+
         return false;
+    }
+
+    public static boolean isAdjacentequal(Board b,Tile t,int boardSize){
+        int curr_row=t.row();
+        int curr_col=t.col();
+
+        //up
+        if((isInboard(curr_col,curr_row-1,boardSize))
+                &&(t.value()==b.tile(curr_col,curr_row-1).value())){
+            return true;
+        }
+        //down
+        if((isInboard(curr_col,curr_row+1,boardSize))
+                &&(t.value()==b.tile(curr_col,curr_row+1).value())){
+            return true;
+        }
+        //left
+        if((isInboard(curr_col-1,curr_row,boardSize))
+                &&(t.value()==b.tile(curr_col-1,curr_row).value())){
+            return true;
+        }
+        //right
+        if((isInboard(curr_col+1,curr_row,boardSize))
+                &&(t.value()==b.tile(curr_col+1,curr_row).value())){
+            return true;
+        }
+
+        return false;
+
+    }
+
+
+    public static boolean isInboard(int col,int row,int boardSize){
+        if((row<0)||(row>boardSize-1)){
+            return false;
+        }
+        if((col<0)||(col>boardSize-1)){
+            return false;
+        }
+        return true;
     }
 
 
